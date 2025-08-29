@@ -1,0 +1,227 @@
+# Option 1 — React Native (single file `App.js`)
+
+A tiny **Tap Counter** with share. Drop this as your `App.js` in a React Native/Expo project.
+
+```javascript
+import React, {useState} from 'react';
+import {SafeAreaView, View, Text, Pressable, StyleSheet, Share} from 'react-native';
+
+export default function App() {
+  const [count, setCount] = useState(0);
+
+  const onShare = async () => {
+    try {
+      await Share.share({
+        message: `I tapped ${count} time${count === 1 ? '' : 's'}!`,
+      });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Tap Counter</Text>
+      <Text style={styles.count}>{count}</Text>
+      <View style={styles.row}>
+        <Pressable style={styles.button} onPress={() => setCount(count + 1)}>
+          <Text style={styles.buttonText}>Tap +1</Text>
+        </Pressable>
+        <Pressable style={styles.button} onPress={() => setCount(0)}>
+          <Text style={styles.buttonText}>Reset</Text>
+        </Pressable>
+      </View>
+      <Pressable style={[styles.button, styles.share]} onPress={onShare}>
+        <Text style={styles.buttonText}>Share</Text>
+      </Pressable>
+      <Text style={styles.tip}>Single-file React Native app (App.js)</Text>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container:{flex:1, alignItems:'center', justifyContent:'center', padding:24, backgroundColor:'#101317'},
+  title:{fontSize:28, fontWeight:'700', color:'#fff', marginBottom:8},
+  count:{fontSize:80, color:'#61dafb', fontVariant:['tabular-nums'], marginBottom:20},
+  row:{flexDirection:'row', gap:12, marginBottom:12},
+  button:{backgroundColor:'#222833', paddingVertical:12, paddingHorizontal:18, borderRadius:16},
+  buttonText:{color:'#fff', fontSize:16, fontWeight:'600'},
+  share:{marginTop:8},
+  tip:{color:'#9aa4b2', marginTop:12}
+});
+```
+
+**Run (Expo quickstart):**
+
+```bash
+npm create expo@latest myapp && cd myapp
+# replace generated App.js with the code above
+npm run start
+```
+
+---
+
+# Option 2 — Flutter (single file `main.dart`)
+
+A **Mood Light**: tap to randomize background color, long‑press to copy HEX.
+
+```dart
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+void main() => runApp(const MoodLightApp());
+
+class MoodLightApp extends StatelessWidget {
+  const MoodLightApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Mood Light',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(brightness: Brightness.dark, useMaterial3: true),
+      home: const MoodLight(),
+    );
+  }
+}
+
+class MoodLight extends StatefulWidget {
+  const MoodLight({super.key});
+
+  @override
+  State<MoodLight> createState() => _MoodLightState();
+}
+
+class _MoodLightState extends State<MoodLight> {
+  Color color = _randomColor();
+
+  static Color _randomColor() {
+    final r = Random();
+    return Color.fromARGB(255, r.nextInt(256), r.nextInt(256), r.nextInt(256));
+  }
+
+  void _next() => setState(() => color = _randomColor());
+
+  Future<void> _copy() async {
+    final hex = '#${color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+    await Clipboard.setData(ClipboardData(text: hex));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Copied $hex')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hex = '#${color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+    return GestureDetector(
+      onTap: _next,
+      onLongPress: _copy,
+      child: Scaffold(
+        backgroundColor: color,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Mood Light', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              Text(hex, style: const TextStyle(fontSize: 22)),
+              const SizedBox(height: 24),
+              FilledButton(onPressed: _next, child: const Text('New Color')),
+              const SizedBox(height: 8),
+              OutlinedButton(onPressed: _copy, child: const Text('Copy HEX')),
+              const SizedBox(height: 24),
+              const Text('Tap background for new color.\nLong-press to copy HEX.', textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+**Run:**
+
+```bash
+flutter create mood_light && cd mood_light
+# replace lib/main.dart with the code above
+flutter run
+```
+
+---
+
+# Option 3 — SwiftUI (single file `TinyTodo.swift`)
+
+A minimal **Tiny To‑Do** list. Add, delete, clear. (In‑memory)
+
+```swift
+import SwiftUI
+
+@main
+struct TinyTodoApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
+
+struct Todo: Identifiable, Hashable {
+    let id = UUID()
+    var text: String
+}
+
+struct ContentView: View {
+    @State private var items: [Todo] = []
+    @State private var draft = ""
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 12) {
+                HStack {
+                    TextField("Add a task...", text: $draft)
+                        .textFieldStyle(.roundedBorder)
+                    Button("Add") {
+                        guard !draft.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+                        items.append(Todo(text: draft.trimmingCharacters(in: .whitespaces)))
+                        draft = ""
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                List {
+                    ForEach(items) { item in
+                        Text(item.text)
+                    }
+                    .onDelete { indexSet in
+                        items.remove(atOffsets: indexSet)
+                    }
+                }
+                .listStyle(.insetGrouped)
+            }
+            .padding()
+            .navigationTitle("Tiny To‑Do")
+            .toolbar {
+                EditButton()
+                Button("Clear") { items.removeAll() }
+            }
+        }
+    }
+}
+```
+
+**Run:**
+
+1. Create a new **iOS App** (SwiftUI, Swift) in Xcode.
+2. Replace the generated files with this single `TinyTodo.swift` (or put this into `ContentView.swift` and rename the `@main` app struct accordingly).
+3. Build & run on Simulator or device.
+
+---
+
+## Notes
+
+* Each option is intentionally single‑file and GitHub‑friendly.
+* You can drop any one into a fresh project, commit, and push.
+* Want a different idea or another framework (Kotlin/Jetpack Compose, Capacitor, MAUI)? Say the word and I’ll ship it in one file.
